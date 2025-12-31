@@ -1,0 +1,37 @@
+#pragma once
+#include <random>
+#include <SFML/Graphics.hpp>
+#include <cmath>
+
+namespace Utils {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    float RandomFloat(float min, float max) {
+        std::uniform_real_distribution<float> dist(min, max);
+        return dist(gen);
+    }
+
+    int RandomInt(int min, int max) {
+        std::uniform_int_distribution dist(min, max);
+        return dist(gen);
+    }
+
+        static constexpr float PI = 3.1415936f;
+
+    static float Dot(sf::Vector2f v1, sf::Vector2f v2) {
+        return v1.x*v2.x + v1.y*v2.y;
+    }
+
+    static float Magnitude(sf::Vector2f v) {
+        return std::sqrtf(v.x*v.x + v.y*v.y);
+    }
+
+    static float MagnitudeSqrd(sf::Vector2f v) {
+        return v.x*v.x + v.y*v.y;
+    }
+
+    static sf::Vector2f normalize(sf::Vector2f v) {
+        return {v/Magnitude(v)};
+    }
+}
