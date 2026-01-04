@@ -6,7 +6,7 @@
                 "${workspaceFolder}/**",
                 // "${workspaceFolder}/Include",
                 // "${workspaceFolder}/App",
-                "${workspaceFolder}/Math",
+                // "${workspaceFolder}/Math",
                 "C:/SFML-3.0.2/include"
             ],
             "defines": [

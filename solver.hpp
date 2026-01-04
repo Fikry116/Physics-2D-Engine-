@@ -7,7 +7,7 @@
 struct VerletObject {
     sf::Vector2f m_current_position;
     sf::Vector2f m_old_position;
-    sf::Vector2f acceleration = {0.f, 1000.f};
+    sf::Vector2f acceleration = {0.f, 50.f};
     float m_radius = 10.f;
     sf::Color m_color = sf::Color::White;
 
@@ -20,11 +20,11 @@ struct VerletObject {
 
         m_old_position = m_current_position;
         m_current_position = m_current_position + displacement + acceleration * (dt*dt);
-        acceleration = {};
+        acceleration = {0.f, 0.f};
     }
 
     void Accelerate(sf::Vector2f v) {
-        acceleration += v;
+        acceleration = v;
     }
 
     void SetVelocity(sf::Vector2f v, float dt) {
@@ -47,16 +47,13 @@ struct VerletObject {
     float GetRadius() {
         return m_radius;
     }
-
-    
-
  
 };
 
 class Solver {
 private:
     uint32_t                  m_sub_steps          = 1;
-    sf::Vector2f              m_gravity            = {0.0f, 100.0f};
+    sf::Vector2f              m_gravity            = {0.0f, 1000.0f};
     sf::Vector2f              m_constraint_center;
     float                     m_constraint_radius  = 400.0f;
     std::vector<VerletObject> m_objects;
@@ -69,9 +66,7 @@ private:
             float distance = Utils::Magnitude(v);
     
             if(distance > (m_constraint_radius - obj.GetRadius())) {
-                std::cout << "before normal\n";
                 sf::Vector2f normal = Utils::normalize(v);
-                std::cout << "normal\n";
                 obj.m_current_position = m_constraint_center - normal * (m_constraint_radius - obj.GetRadius());
             }
         }
@@ -84,25 +79,31 @@ private:
     }
 
     void CheckCollision() {
-        for(auto &obj1 : m_objects) {
-            for(auto &obj2 : m_objects) {
-                sf::Vector2f delta_pos = obj1.GetPosition() - obj2.GetPosition();
-                float distance = Utils::MagnitudeSqrd(delta_pos);
-                float min_distance = obj1.GetRadius() + obj2.GetRadius();
-                std::cout << delta_pos.x << " " << delta_pos.y;
+        const uint32_t object_count = m_objects.size();
+        for (uint32_t i = 0; i < object_count; ++i) {
+            VerletObject& obj1 = m_objects[i];
 
+            for (uint32_t j = 0; j < object_count; ++j) {
+                VerletObject& obj2 = m_objects[j];
+                if(i != j) {
+                    sf::Vector2f delta_pos = obj1.GetPosition() - obj2.GetPosition();
+                    
+                    float distSq = Utils::MagnitudeSqrd(delta_pos);
+                    float min_dist = obj1.GetRadius() + obj2.GetRadius();
+                    float min_distSq = min_dist * min_dist;
 
-                if (distance < (min_distance)) {
-                    std::cout << "bef normal collision\n";
-                    sf::Vector2f normal = Utils::normalize(delta_pos);
-                    std::cout << "normal collision\n";
-                    float overlap = min_distance - distance;
-                    obj1.m_old_position = obj1.m_current_position;
-                    obj1.m_current_position += normal * (overlap/2);
+                    if (distSq < min_distSq) {
+                        float dist = sqrt(distSq); 
+                        
+                        sf::Vector2f normal = (dist > 0.0001f) ? delta_pos / dist : sf::Vector2f(1, 0); 
+                        
+                        float overlap = min_dist - dist; 
 
-                    obj2.m_old_position = obj2.m_current_position;
-                    obj2.m_current_position += normal * (overlap/2);
-
+                        sf::Vector2f correction = normal * (overlap * 0.5f);
+                        
+                        obj1.m_current_position += correction;
+                        obj2.m_current_position -= correction; 
+                    }
                 }
             }
         }
@@ -125,8 +126,16 @@ public:
         m_sub_steps = sub_step;
     }
 
+    void ClearObject() {
+        m_objects.clear();
+    }
+
     void SetSimulation(float dt) {
         m_frame_dt = 1.f / dt;
+    }
+
+    void setObjectVelocity(VerletObject& object, sf::Vector2f v) {
+        object.SetVelocity(v, GetStepDt());
     }
 
     [[nodiscard]]
