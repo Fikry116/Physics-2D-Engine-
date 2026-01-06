@@ -10,7 +10,7 @@ public:
     Renderer(sf::RenderTarget &target) : m_target(target) {}
 
     void render(Solver &solver) const {
-            const sf::Vector3f constraint = solver.getConstraint();
+            const sf::Vector3f constraint = solver.GetConstraint();
         sf::CircleShape constraint_background{constraint.z};
         constraint_background.setOrigin({constraint.z, constraint.z});
         constraint_background.setFillColor(sf::Color::Black);

@@ -27,6 +27,12 @@ namespace Utils {
         return std::sqrtf(v.x*v.x + v.y*v.y);
     }
 
+    static float DistanceTwoPoint(sf::Vector2f u1, sf::Vector2f u2) {
+        float x = std::pow(u1.x-u2.x, 2);
+        float y = std::pow(u1.y-u2.y, 2);
+        return sqrtf(x+y);
+    }
+
     static float MagnitudeSqrd(sf::Vector2f v) {
         return v.x*v.x + v.y*v.y;
     }

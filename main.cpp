@@ -18,15 +18,18 @@ int main() {
     Solver mySolver;
     Renderer myRenderer(window);
     
-    const int max_object = 500;
+    const int max_object = 150;
     const float min_radius = 15.f;
     const float max_radius = 25.f;
     
     sf::ContextSettings settings;
     settings.antiAliasingLevel = 1;
     window.setFramerateLimit(120);
-
+    sf::CircleShape circle(50.f);
     sf::Vector2f constraint_size ={static_cast<float>(window.getSize().x/2), static_cast<float>(window.getSize().y/2)};
+
+    circle.setPosition(constraint_size);
+    
     sf::Clock clock;
     clock.start();
 
@@ -55,22 +58,28 @@ int main() {
 
         } //akhir polEvent()
 
+        float dt = mySolver.GetTime();
+        circle.setFillColor(ColorProcedural(dt));
+
         if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-            sf::Vector2i mouse_pos = sf::Mouse::getPosition(window);
-            if(mySolver.GetObjectCount() < max_object && clock.getElapsedTime().asSeconds() > 0.085) {
+            sf::Vector2f mouse_pos = static_cast<sf::Vector2f>(sf::Mouse::getPosition(window));
+            if(mySolver.GetObjectCount() < max_object && clock.getElapsedTime().asSeconds() > 0.085 && mySolver.IsInConstraint(mouse_pos)) {
                 clock.restart();
                 // for(int i = 0; i < 3; i++) {
                     float radius = Utils::RandomFloat(min_radius, max_radius);
-                    VerletObject& object = mySolver.AddObject(static_cast<sf::Vector2f>(mouse_pos), radius);
                     float t = mySolver.GetTime();
-                    const float angle  = t * std::sin(t) + Utils::PI * 0.5f;
-                    mySolver.setObjectVelocity(object, sf::Vector2f{std::cos(angle), std::sin(angle)});
+                    
+                    // Pake spawnPos yang udah di-jitter
+                    VerletObject& object = mySolver.AddObject(mouse_pos, 15.f);
+                    mySolver.setObjectVelocity(object, sf::Vector2f{-5.f, -9.8f});
                     object.m_color = ColorProcedural(t);
                 // }
             }
         }
-        
+
+
         window.clear(sf::Color(100, 116, 139));
+        window.draw(circle);
         mySolver.Update();
         myRenderer.render(mySolver);
         window.display();

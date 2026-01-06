@@ -19,20 +19,24 @@ struct VerletObject {
         const sf::Vector2f displacement = m_current_position - m_old_position;
 
         m_old_position = m_current_position;
-        m_current_position = m_current_position + displacement + acceleration * (dt*dt);
+
+        float friction = 0.995f; 
+        
+        m_current_position = m_current_position + (displacement * friction) + acceleration * (dt*dt);
         acceleration = {0.f, 0.f};
+
     }
 
     void Accelerate(sf::Vector2f v) {
         acceleration = v;
     }
 
-    void SetVelocity(sf::Vector2f v, float dt) {
-        m_old_position = m_current_position + v * dt;
+    void SetVelocity(sf::Vector2f speed, float dt) {
+        m_old_position = m_current_position + speed * dt;
     }
 
     void AddVelocity(sf::Vector2f v, float dt) {
-        m_old_position -= v * dt;
+        m_current_position -= v;
     }
 
     [[nodiscard]]
@@ -117,6 +121,14 @@ private:
     
 public:
     Solver() = default;
+
+    bool IsInConstraint(sf::Vector2f mouse_pos) {
+        float distance_center_to_mouse = Utils::DistanceTwoPoint(m_constraint_center, mouse_pos);
+        if(distance_center_to_mouse <= m_constraint_radius) {
+            return true;
+        }
+        return false;
+    }
     
     VerletObject& AddObject(sf::Vector2f pos, float radius) {
         return m_objects.emplace_back(pos, radius);
@@ -134,12 +146,13 @@ public:
         m_frame_dt = 1.f / dt;
     }
 
-    void setObjectVelocity(VerletObject& object, sf::Vector2f v) {
-        object.SetVelocity(v, GetStepDt());
+    void setObjectVelocity(VerletObject& object, sf::Vector2f speed) {
+        object.SetVelocity(speed, GetStepDt());
+        object.AddVelocity(speed, GetStepDt());
     }
 
     [[nodiscard]]
-    sf::Vector3f getConstraint() const
+    sf::Vector3f GetConstraint() const
     {
         return {m_constraint_center.x, m_constraint_center.y, m_constraint_radius};
     }
@@ -155,7 +168,7 @@ public:
         return m_objects.size();
     }
 
-    [[nodiscard]]
+    [[nodiscard]] /**Mereturn delta time */
     float GetStepDt() const
     {
         return m_frame_dt / static_cast<float>(m_sub_steps);
