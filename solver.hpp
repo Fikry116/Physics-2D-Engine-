@@ -57,7 +57,7 @@ struct VerletObject {
 class Solver {
 private:
     uint32_t                  m_sub_steps          = 1;
-    sf::Vector2f              m_gravity            = {0.0f, 1000.0f};
+    sf::Vector2f              m_gravity            = {100.0f, 1000.0f};
     sf::Vector2f              m_constraint_center;
     float                     m_constraint_radius  = 400.0f;
     std::vector<VerletObject> m_objects;
@@ -68,9 +68,10 @@ private:
         for(auto &obj : m_objects) {
             sf::Vector2f v = m_constraint_center - obj.GetPosition();
             float distance = Utils::Magnitude(v);
+            float max_distance = m_constraint_radius - obj.GetRadius();
     
-            if(distance > (m_constraint_radius - obj.GetRadius())) {
-                sf::Vector2f normal = Utils::normalize(v);
+            if(distance > max_distance) {
+                sf::Vector2f normal = Utils::Normalize(v);
                 obj.m_current_position = m_constraint_center - normal * (m_constraint_radius - obj.GetRadius());
             }
         }
@@ -87,27 +88,26 @@ private:
         for (uint32_t i = 0; i < object_count; ++i) {
             VerletObject& obj1 = m_objects[i];
 
-            for (uint32_t j = 0; j < object_count; ++j) {
+            for (uint32_t j = i+1; j < object_count; ++j) {
                 VerletObject& obj2 = m_objects[j];
-                if(i != j) {
-                    sf::Vector2f delta_pos = obj1.GetPosition() - obj2.GetPosition();
+                sf::Vector2f delta_pos = obj1.GetPosition() - obj2.GetPosition();
+                
+                float dist_sqrd = Utils::MagnitudeSqrd(delta_pos);
+                float min_dist = obj1.GetRadius() + obj2.GetRadius() + 3.f;
+                float min_dist_sqrd = min_dist * min_dist;
+
+
+                if (dist_sqrd < min_dist_sqrd) {
+                    float dist = sqrt(dist_sqrd); 
                     
-                    float distSq = Utils::MagnitudeSqrd(delta_pos);
-                    float min_dist = obj1.GetRadius() + obj2.GetRadius();
-                    float min_distSq = min_dist * min_dist;
+                    sf::Vector2f normal = (dist > 0.0001f) ? delta_pos / dist : sf::Vector2f(1, 0); 
+                    
+                    float overlap = min_dist - dist; 
 
-                    if (distSq < min_distSq) {
-                        float dist = sqrt(distSq); 
-                        
-                        sf::Vector2f normal = (dist > 0.0001f) ? delta_pos / dist : sf::Vector2f(1, 0); 
-                        
-                        float overlap = min_dist - dist; 
-
-                        sf::Vector2f correction = normal * (overlap * 0.5f);
-                        
-                        obj1.m_current_position += correction;
-                        obj2.m_current_position -= correction; 
-                    }
+                    sf::Vector2f correction = normal * (overlap * 0.5f);
+                    
+                    obj1.m_current_position += correction;
+                    obj2.m_current_position -= correction; 
                 }
             }
         }
@@ -124,7 +124,7 @@ public:
 
     bool IsInConstraint(sf::Vector2f mouse_pos) {
         float distance_center_to_mouse = Utils::DistanceTwoPoint(m_constraint_center, mouse_pos);
-        if(distance_center_to_mouse <= m_constraint_radius) {
+        if(distance_center_to_mouse <= m_constraint_radius - 2.49) {
             return true;
         }
         return false;
@@ -179,10 +179,15 @@ public:
         m_constraint_center = position;
         m_constraint_radius = radius;
     }
-
     
     float GetTime() {
         return m_time;
+    }
+
+    sf::Vector2f SetSpeedWhenSpawn(sf::Vector2f mouse_pos) {
+        sf::Vector2f direction = m_constraint_center - mouse_pos;
+        direction = Utils::Normalize(direction);
+        return direction;
     }
 
     void Update() {

@@ -15,18 +15,20 @@ public:
         constraint_background.setOrigin({constraint.z, constraint.z});
         constraint_background.setFillColor(sf::Color::Black);
         constraint_background.setPosition({constraint.x, constraint.y});
-        constraint_background.setPointCount(32);
+        constraint_background.setPointCount(256);
         m_target.draw(constraint_background);
 
         // Render objects
         sf::CircleShape circle{1.0f};
-        circle.setPointCount(256);
+        circle.setPointCount(30);
         circle.setOrigin({1.0f, 1.0f});
 
         const auto& objects = solver.getObjects();
         for (const auto& obj : objects) {
             circle.setPosition(obj.m_current_position);
             circle.setScale({obj.m_radius, obj.m_radius});
+            circle.setOutlineThickness(0.5f);
+            circle.setOutlineColor(Utils::ColorProcedural(solver.GetTime()));
             circle.setFillColor(obj.m_color);
             m_target.draw(circle);
         }

@@ -3,22 +3,30 @@
 #include "solver.hpp"
 #include "renderer.hpp"
 
-static sf::Color ColorProcedural(float dt) {
-    float r = sin(dt);
-    float g = sin(dt + .333f * 2.f * Utils::PI);
-    float b = sin(dt + .666f * 2.f * Utils::PI);
 
-    return sf::Color(static_cast<uint8_t>(255.f * r * r),
-                     static_cast<uint8_t>(255.f * g * g),
-                     static_cast<uint8_t>(255.f * b * b));
-}
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({1000, 1000}), "GG" );
     Solver mySolver;
     Renderer myRenderer(window);
+
+    sf::Font font;
+    if (!font.openFromFile("ARIAL.ttf")) { 
+        std::cerr << "Error loading font" << std::endl;
+        return -1;
+    }
+
+    sf::Text fpsText(font);
+    fpsText.setCharacterSize(20);
+    fpsText.setFillColor(sf::Color::Green);
+    fpsText.setPosition({10.f, 10.f});
+
+    sf::Clock clock_fps;
     
-    const int max_object = 150;
+    sf::Time timeSinceLastUpdate = sf::Time::Zero;
+    int frameCount = 0;
+    
+    const int max_object = 1000;
     const float min_radius = 15.f;
     const float max_radius = 25.f;
     
@@ -34,10 +42,14 @@ int main() {
     clock.start();
 
     mySolver.SetConstraint(constraint_size, 350.f);
-    mySolver.SetSimulation(120);
-    mySolver.SetSubStep(4);
+    mySolver.SetSimulation(120.f);
+    mySolver.SetSubStep(2);
 
     while(window.isOpen()) {
+
+        sf::Time dt = clock_fps.restart();
+        float dtSeconds = dt.asSeconds();
+
         while(auto eventOpt = window.pollEvent()) {
             auto &event = *eventOpt;
             if(auto *resize = event.getIf<sf::Event::Resized>()) {
@@ -58,28 +70,42 @@ int main() {
 
         } //akhir polEvent()
 
-        float dt = mySolver.GetTime();
-        circle.setFillColor(ColorProcedural(dt));
+        timeSinceLastUpdate += dt;
+        frameCount++;
+
+        if (timeSinceLastUpdate.asSeconds() >= 0.5f) {
+            float fps = frameCount / timeSinceLastUpdate.asSeconds();
+            float ms = (timeSinceLastUpdate.asSeconds() / frameCount) * 1000.0f;
+
+            std::stringstream ss;
+            ss << "FPS: " << std::fixed << std::setprecision(0) << fps << "\n"
+               << "Frame Time: " << std::setprecision(2) << ms << " ms\n"
+               << "Objects: " << mySolver.GetObjectCount();
+            
+            fpsText.setString(ss.str());
+
+            // Reset counter
+            timeSinceLastUpdate = sf::Time::Zero;
+            frameCount = 0;
+        }
+
 
         if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
             sf::Vector2f mouse_pos = static_cast<sf::Vector2f>(sf::Mouse::getPosition(window));
-            if(mySolver.GetObjectCount() < max_object && clock.getElapsedTime().asSeconds() > 0.085 && mySolver.IsInConstraint(mouse_pos)) {
+            if(mySolver.GetObjectCount() < max_object && clock.getElapsedTime().asSeconds() > 0.025 && mySolver.IsInConstraint(mouse_pos)) {
                 clock.restart();
-                // for(int i = 0; i < 3; i++) {
-                    float radius = Utils::RandomFloat(min_radius, max_radius);
-                    float t = mySolver.GetTime();
-                    
-                    // Pake spawnPos yang udah di-jitter
-                    VerletObject& object = mySolver.AddObject(mouse_pos, 15.f);
-                    mySolver.setObjectVelocity(object, sf::Vector2f{-5.f, -9.8f});
-                    object.m_color = ColorProcedural(t);
-                // }
+                float radius = Utils::RandomFloat(min_radius, max_radius);
+                float t = mySolver.GetTime();
+                
+                VerletObject& object = mySolver.AddObject(mouse_pos, 5.f);
+                mySolver.setObjectVelocity(object, -mySolver.SetSpeedWhenSpawn(mouse_pos) * 3.f);
+                object.m_color = sf::Color::Transparent;
             }
         }
 
 
         window.clear(sf::Color(100, 116, 139));
-        window.draw(circle);
+        window.draw(fpsText);
         mySolver.Update();
         myRenderer.render(mySolver);
         window.display();

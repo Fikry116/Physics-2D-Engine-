@@ -37,7 +37,23 @@ namespace Utils {
         return v.x*v.x + v.y*v.y;
     }
 
-    static sf::Vector2f normalize(sf::Vector2f v) {
-        return {v/Magnitude(v)};
+    static sf::Vector2f Normalize(sf::Vector2f v) {
+        float length = Magnitude(v);
+        if(length == 0.f) {
+            return sf::Vector2f{0.f, 0.f};
+        }
+        return {v/length};
     }
+
+    static sf::Color ColorProcedural(float dt) {
+    float r = sin(dt);
+    float g = sin(dt + .333f * 2.f * Utils::PI);
+    float b = sin(dt + .666f * 2.f * Utils::PI);
+
+    return sf::Color(static_cast<uint8_t>(255.f * r * r),
+                     static_cast<uint8_t>(255.f * g * g),
+                     static_cast<uint8_t>(255.f * b * b));
+}
+
+
 }
